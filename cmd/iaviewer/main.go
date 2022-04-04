@@ -9,8 +9,14 @@ import (
 	"strconv"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/iavl"
 	dbm "github.com/tendermint/tm-db"
+	"github.com/cosmos/cosmos-sdk/types/address"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	ethermint "github.com/tharsis/ethermint/types"
 )
 
 // TODO: make this configurable?
@@ -20,7 +26,7 @@ const (
 
 func main() {
 	args := os.Args[1:]
-	if len(args) < 3 || (args[0] != "data" && args[0] != "shape" && args[0] != "versions") {
+	if len(args) < 3 || (args[0] != "data" && args[0] != "shape" && args[0] != "versions" && args[0] != "balance" && args[0] != "nonce") {
 		fmt.Fprintln(os.Stderr, "Usage: iaviewer <data|shape|versions> <leveldb dir> <prefix> [version number]")
 		fmt.Fprintln(os.Stderr, "<prefix> is the prefix of db, and the iavl tree of different modules in cosmos-sdk uses ")
 		fmt.Fprintln(os.Stderr, "different <prefix> to identify, just like \"s/k:gov/\" represents the prefix of gov module")
@@ -28,7 +34,7 @@ func main() {
 	}
 
 	version := 0
-	if len(args) == 4 {
+	if len(args) >= 4 {
 		var err error
 		version, err = strconv.Atoi(args[3])
 		if err != nil {
@@ -52,6 +58,19 @@ func main() {
 		PrintShape(tree)
 	case "versions":
 		PrintVersions(tree)
+	case "balance":
+		addr, err := hex.DecodeString(args[4])
+		if err != nil {
+			panic(err)
+		}
+		PrintBalance(tree, addr)
+	case "nonce":
+		addr, err := hex.DecodeString(args[4])
+		if err != nil {
+			panic(err)
+		}
+		PrintAccount(tree, addr)
+
 	}
 }
 
@@ -70,7 +89,7 @@ func OpenDB(dir string) (dbm.DB, error) {
 		return nil, fmt.Errorf("cannot cut paths on %s", dir)
 	}
 	name := dir[cut+1:]
-	db, err := dbm.NewGoLevelDB(name, dir[:cut])
+	db, err := dbm.NewRocksDB(name, dir[:cut])
 	if err != nil {
 		return nil, err
 	}
@@ -176,5 +195,41 @@ func PrintVersions(tree *iavl.MutableTree) {
 	fmt.Println("Available versions:")
 	for _, v := range versions {
 		fmt.Printf("  %d\n", v)
+	}
+}
+
+func PrintBalance(tree *iavl.MutableTree, addr []byte) {
+	key := []byte{0x02}
+	key = append(key, address.MustLengthPrefix(addr)...)
+	denom := "basecro"
+	key = append(key, []byte(denom)...)
+	_, value := tree.Get(key)
+	if value == nil {
+		fmt.Println("not found")
+	} else {
+		cdc := codec.NewLegacyAmino()
+		marshaler := codec.NewAminoCodec(cdc)
+		var balance sdk.Coin
+		marshaler.MustUnmarshal(value, &balance)
+		fmt.Println(balance.String())
+	}
+}
+
+func PrintAccount(tree *iavl.MutableTree, addr []byte) {
+	key := authtypes.AddressStoreKey(addr)
+	_, value := tree.Get(key)
+	if value == nil {
+		fmt.Println("not found")
+	} else {
+		interfaceRegistry := types.NewInterfaceRegistry()
+		authtypes.RegisterInterfaces(interfaceRegistry)
+		ethermint.RegisterInterfaces(interfaceRegistry)
+		marshaler := codec.NewProtoCodec(interfaceRegistry)
+
+		var acc authtypes.AccountI
+		if err := marshaler.UnmarshalInterface(value, &acc); err != nil {
+			panic(err)
+		}
+		fmt.Println(acc.GetSequence())
 	}
 }
