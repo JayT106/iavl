@@ -52,7 +52,7 @@ func main() {
 	var tree *iavl.MutableTree
 	if args[0] != "stastistics" {
 		var err error
-		tree, err = ReadTree(args[1], version, []byte(args[2]))
+		tree, _, err = ReadTree(args[1], version, []byte(args[2]))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
 			os.Exit(1)
@@ -134,10 +134,10 @@ func PrintDBStats(db dbm.DB) {
 // ReadTree loads an iavl tree from the directory
 // If version is 0, load latest, otherwise, load named version
 // The prefix represents which iavl tree you want to read. The iaviwer will always set a prefix.
-func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, error) {
+func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, dbm.DB, error) {
 	db, err := OpenDB(dir)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(prefix) != 0 {
 		db = dbm.NewPrefixDB(db, prefix)
@@ -145,11 +145,11 @@ func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, error)
 
 	tree, err := iavl.NewMutableTree(db, DefaultCacheSize)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ver, err := tree.LoadVersion(int64(version))
 	fmt.Printf("Got version: %d\n", ver)
-	return tree, err
+	return tree, db, err
 }
 
 func PrintKeys(tree *iavl.MutableTree) {
@@ -271,7 +271,7 @@ func PrintStatistics(dbpath string, version int) {
 
 	for idx, mod := range modules {
 		prefix := fmt.Sprintf("s/k:%s/", mod)
-		tree, err := ReadTree(dbpath, version, []byte(prefix))
+		tree, db, err := ReadTree(dbpath, version, []byte(prefix))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading %s data: %s\n", mod, err)
 			continue
@@ -280,7 +280,7 @@ func PrintStatistics(dbpath string, version int) {
 		fmt.Printf("iterating over %s  (%d/%d)\n", mod, idx+1, len(modules))
 		fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
 		PrintKeysWithValueSize(tree)
-		fmt.Println("")
+		db.Close()
 	}
 
 }
@@ -296,7 +296,7 @@ func PrintKeysWithValueSize(tree *iavl.MutableTree) {
 		printKey := parseWeaveKey(key)
 		digest := sha256.Sum256(value)
 		valueSize := len(value)
-		fmt.Printf("  %s\n    %X\n", printKey, digest, valueSize)
+		fmt.Printf("k: %s,size: %d,v: %X\n", printKey, valueSize, digest)
 		count++
 		keySizeTotal += len(key)
 		valueSizeTotal += len(value)
