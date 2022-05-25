@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/iavl"
-	dbm "github.com/tendermint/tm-db"
-	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/iavl"
+	dbm "github.com/tendermint/tm-db"
 	ethermint "github.com/tharsis/ethermint/types"
 )
 
@@ -26,7 +26,13 @@ const (
 
 func main() {
 	args := os.Args[1:]
-	if len(args) < 3 || (args[0] != "data" && args[0] != "shape" && args[0] != "versions" && args[0] != "balance" && args[0] != "nonce") {
+	if len(args) < 3 ||
+		(args[0] != "data" &&
+			args[0] != "shape" &&
+			args[0] != "versions" &&
+			args[0] != "balance" &&
+			args[0] != "nonce" &&
+			args[0] != "stastistics") {
 		fmt.Fprintln(os.Stderr, "Usage: iaviewer <data|shape|versions> <leveldb dir> <prefix> [version number]")
 		fmt.Fprintln(os.Stderr, "<prefix> is the prefix of db, and the iavl tree of different modules in cosmos-sdk uses ")
 		fmt.Fprintln(os.Stderr, "different <prefix> to identify, just like \"s/k:gov/\" represents the prefix of gov module")
@@ -43,10 +49,14 @@ func main() {
 		}
 	}
 
-	tree, err := ReadTree(args[1], version, []byte(args[2]))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
-		os.Exit(1)
+	var tree *iavl.MutableTree
+	if args[0] != "stastistics" {
+		var err error
+		tree, err = ReadTree(args[1], version, []byte(args[2]))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
+			os.Exit(1)
+		}
 	}
 
 	switch args[0] {
@@ -70,7 +80,8 @@ func main() {
 			panic(err)
 		}
 		PrintAccount(tree, addr)
-
+	case "stastistics":
+		PrintStatistics(args[1], version)
 	}
 }
 
@@ -232,4 +243,80 @@ func PrintAccount(tree *iavl.MutableTree, addr []byte) {
 		}
 		fmt.Println(acc.GetSequence())
 	}
+}
+
+func PrintStatistics(dbpath string, version int) {
+	// prefixes "s/k:bank/"
+	modules := [19]string{
+		"capability",
+		"params",
+		"transfer",
+		"staking",
+		"slashing",
+		"distribution",
+		"feegrant",
+		"upgrade",
+		"authz",
+		"evidence",
+		"feemarket",
+		"gravity",
+		"gov",
+		"cronos",
+		"ibc",
+		"bank",
+		"mint",
+		"acc",
+		"evm",
+	}
+
+	for idx, mod := range modules {
+		prefix := fmt.Sprintf("s/k:%s/", mod)
+		tree, err := ReadTree(dbpath, version, []byte(prefix))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s data: %s\n", mod, err)
+			continue
+		}
+
+		fmt.Printf("iterating over %s  (%d/%d)\n", mod, idx+1, len(modules))
+		fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
+		PrintKeysWithValueSize(tree)
+		fmt.Println("")
+	}
+
+}
+
+func PrintKeysWithValueSize(tree *iavl.MutableTree) {
+	fmt.Println("Printing all keys with hashed values (to detect diff)")
+	count := int64(0)
+	keySizeTotal := 0
+	valueSizeTotal := 0
+	keyMaxSize := int64(0)
+	valueMaxSize := int64(0)
+	tree.Iterate(func(key []byte, value []byte) bool {
+		printKey := parseWeaveKey(key)
+		digest := sha256.Sum256(value)
+		valueSize := len(value)
+		fmt.Printf("  %s\n    %X\n", printKey, digest, valueSize)
+		count++
+		keySizeTotal += len(key)
+		valueSizeTotal += len(value)
+		keyMaxSize = Max(keyMaxSize, int64(len(key)))
+		valueMaxSize = Max(valueMaxSize, int64(len(value)))
+
+		if count%(tree.Size()/100) == 0 {
+			fmt.Printf("progress:  %d%%\n", count*100/tree.Size())
+		}
+
+		return false
+	})
+	fmt.Printf("%d keys, keySizeTotal: %d, valueSizeTotal: %d\n", count, keySizeTotal, valueSizeTotal)
+	fmt.Printf("avg key size:%d, avg value size:%d\n", int64(keySizeTotal)/count, int64(valueSizeTotal)/count)
+	fmt.Printf("max key size:%d, max value size:%d\n", keyMaxSize, valueMaxSize)
+}
+
+func Max(x, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
 }
