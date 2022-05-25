@@ -310,7 +310,9 @@ func PrintKeysWithValueSize(tree *iavl.MutableTree) {
 		return false
 	})
 	fmt.Printf("%d keys, keySizeTotal: %d, valueSizeTotal: %d\n", count, keySizeTotal, valueSizeTotal)
-	fmt.Printf("avg key size:%d, avg value size:%d\n", int64(keySizeTotal)/count, int64(valueSizeTotal)/count)
+	if count > 0 {
+		fmt.Printf("avg key size:%d, avg value size:%d\n", int64(keySizeTotal)/count, int64(valueSizeTotal)/count)
+	}
 	fmt.Printf("max key size:%d, max value size:%d\n", keyMaxSize, valueMaxSize)
 }
 
