@@ -303,7 +303,7 @@ func PrintKeysWithValueSize(tree *iavl.MutableTree) {
 		keyMaxSize = Max(keyMaxSize, int64(len(key)))
 		valueMaxSize = Max(valueMaxSize, int64(len(value)))
 
-		if count%(tree.Size()/100) == 0 {
+		if tree.Size() >= 100 && count%(tree.Size()/100) == 0 {
 			fmt.Printf("progress:  %d%%\n", count*100/tree.Size())
 		}
 
