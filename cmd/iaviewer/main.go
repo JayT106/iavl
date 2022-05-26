@@ -145,9 +145,15 @@ func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, dbm.DB
 
 	tree, err := iavl.NewMutableTree(db, DefaultCacheSize)
 	if err != nil {
+		db.Close()
 		return nil, nil, err
 	}
 	ver, err := tree.LoadVersion(int64(version))
+	if err != nil {
+		db.Close()
+		return nil, nil, err
+	}
+
 	fmt.Printf("Got version: %d\n", ver)
 	return tree, db, err
 }
