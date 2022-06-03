@@ -253,25 +253,25 @@ func PrintAccount(tree *iavl.MutableTree, addr []byte) {
 
 func PrintStatistics(dbpath string, version int) {
 	// prefixes "s/k:bank/"
-	modules := [19]string{
-		"capability",
-		"params",
-		"transfer",
-		"staking",
-		"slashing",
-		"distribution",
-		"feegrant",
-		"upgrade",
-		"authz",
-		"evidence",
-		"feemarket",
-		"gravity",
-		"gov",
-		"cronos",
-		"ibc",
-		"bank",
-		"mint",
-		"acc",
+	modules := [1]string{
+		// "capability",
+		// "params",
+		// "transfer",
+		// "staking",
+		// "slashing",
+		// "distribution",
+		// "feegrant",
+		// "upgrade",
+		// "authz",
+		// "evidence",
+		// "feemarket",
+		// "gravity",
+		// "gov",
+		// "cronos",
+		// "ibc",
+		// "bank",
+		// "mint",
+		// "acc",
 		"evm",
 	}
 
@@ -293,33 +293,46 @@ func PrintStatistics(dbpath string, version int) {
 
 func PrintKeysWithValueSize(tree *iavl.MutableTree) {
 	fmt.Println("Printing all keys with hashed values (to detect diff)")
-	count := int64(0)
-	keySizeTotal := 0
-	valueSizeTotal := 0
-	keyMaxSize := int64(0)
-	valueMaxSize := int64(0)
-	tree.Iterate(func(key []byte, value []byte) bool {
-		printKey := parseWeaveKey(key)
-		digest := sha256.Sum256(value)
-		valueSize := len(value)
-		fmt.Printf("k: %s,size: %d,v: %X\n", printKey, valueSize, digest)
-		count++
-		keySizeTotal += len(key)
-		valueSizeTotal += len(value)
-		keyMaxSize = Max(keyMaxSize, int64(len(key)))
-		valueMaxSize = Max(valueMaxSize, int64(len(value)))
+	leafCount := int64(0)
+	nonLeafCount := int64(0)
+	keySizeLeafTotal := 0
+	valueSizeLeafTotal := 0
+	//keyMaxLeafSize := int64(0)
+	//valueMaxLeafSize := int64(0)
+	encodedSizeLeafTotal := int64(0)
 
-		if tree.Size() >= 100 && count%(tree.Size()/100) == 0 {
-			fmt.Printf("progress:  %d%%\n", count*100/tree.Size())
+	keySizeNonLeafTotal := 0
+	valueSizeNonLeafTotal := 0
+	//keyMaxNonLeafSize := int64(0)
+	//valueMaxNonLeafSize := int64(0)
+	encodedSizeNonLeafTotal := int64(0)
+
+	tree.IterateNode(func(key []byte, value []byte, leaf bool, encodedSize int) bool {
+		printKey := parseWeaveKey(key)
+		//digest := sha256.Sum256(value)
+		valueSize := len(value)
+		fmt.Printf("k: %s,leaf: %t,vs: %d,es: %d\n", printKey, leaf, valueSize, encodedSize)
+
+		if leaf {
+			leafCount++
+			keySizeLeafTotal += len(key)
+			valueSizeLeafTotal += len(value)
+			encodedSizeLeafTotal += int64(encodedSize)
+			//keyMaxLeafSize = Max(keyMaxLeafSize, int64(len(key)))
+			//valueMaxLeafSize = Max(valueMaxLeafSize, int64(len(value)))
+		} else {
+			nonLeafCount++
+			keySizeNonLeafTotal += len(key)
+			valueSizeNonLeafTotal += len(value)
+			encodedSizeNonLeafTotal += int64(encodedSize)
+			//keyMaxNonLeafSize = Max(keyMaxNonLeafSize, int64(len(key)))
+			//valueMaxNonLeafSize = Max(valueMaxNonLeafSize, int64(len(value)))
 		}
 
 		return false
 	})
-	fmt.Printf("%d keys, keySizeTotal: %d, valueSizeTotal: %d\n", count, keySizeTotal, valueSizeTotal)
-	if count > 0 {
-		fmt.Printf("avg key size:%d, avg value size:%d\n", int64(keySizeTotal)/count, int64(valueSizeTotal)/count)
-	}
-	fmt.Printf("max key size:%d, max value size:%d\n", keyMaxSize, valueMaxSize)
+	fmt.Printf("leaf- k: %d, kst: %d, vst: %d, est: %d\n", leafCount, keySizeLeafTotal, valueSizeLeafTotal, encodedSizeLeafTotal)
+	fmt.Printf("nonLeaf- k: %d, kst: %d, vst: %d, est: %d\n", nonLeafCount, keySizeNonLeafTotal, valueSizeNonLeafTotal, encodedSizeNonLeafTotal)
 }
 
 func Max(x, y int64) int64 {

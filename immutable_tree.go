@@ -174,6 +174,18 @@ func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped
 	})
 }
 
+func (t *ImmutableTree) IterateNode(fn func(key []byte, value []byte, leaf bool, encodedSize int) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverse(t, true, func(node *Node) bool {
+		//if node.height == 0 {
+		return fn(node.key, node.value, node.isLeaf(), node.encodedSize())
+		//}
+		//return false
+	})
+}
+
 // IterateRange makes a callback for all nodes with key between start and end non-inclusive.
 // If either are nil, then it is open on that side (nil, nil is the same as Iterate). The keys and
 // values must not be modified, since they may point to data stored within IAVL.
