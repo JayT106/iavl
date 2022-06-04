@@ -753,3 +753,7 @@ func (tree *MutableTree) addOrphans(orphans []*Node) {
 		tree.orphans[string(node.hash)] = node.version
 	}
 }
+
+func (tree *MutableTree) GetOrphanSize() (int, int, int) {
+	return tree.ndb.orphanskv()
+}

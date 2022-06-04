@@ -660,6 +660,19 @@ func (ndb *nodeDB) orphans() [][]byte {
 	return orphans
 }
 
+func (ndb *nodeDB) orphanskv() (int, int, int) {
+
+	kSize := 0
+	vSize := 0
+	c := 0
+	ndb.traverseOrphans(func(k, v []byte) {
+		kSize += len(k)
+		vSize += len(v)
+		c++
+	})
+	return c, kSize, vSize
+}
+
 func (ndb *nodeDB) roots() map[int64][]byte {
 	roots, _ := ndb.getRoots()
 	return roots
