@@ -308,10 +308,10 @@ func PrintKeysWithValueSize(tree *iavl.MutableTree) {
 	encodedSizeNonLeafTotal := int64(0)
 
 	tree.IterateNode(func(key []byte, value []byte, leaf bool, encodedSize int) bool {
-		printKey := parseWeaveKey(key)
+		//printKey := parseWeaveKey(key)
 		//digest := sha256.Sum256(value)
-		valueSize := len(value)
-		fmt.Printf("k: %s,leaf: %t,vs: %d,es: %d\n", printKey, leaf, valueSize, encodedSize)
+		//valueSize := len(value)
+		//fmt.Printf("k: %s,leaf: %t,vs: %d,es: %d\n", printKey, leaf, valueSize, encodedSize)
 
 		if leaf {
 			leafCount++
