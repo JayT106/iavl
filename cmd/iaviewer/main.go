@@ -275,7 +275,7 @@ func PrintStatistics(dbpath string, version int) {
 		"evm",
 	}
 
-	for idx, mod := range modules {
+	for _, mod := range modules {
 		prefix := fmt.Sprintf("s/k:%s/", mod)
 		tree, db, err := ReadTree(dbpath, version, []byte(prefix))
 		if err != nil {
@@ -283,9 +283,17 @@ func PrintStatistics(dbpath string, version int) {
 			continue
 		}
 
-		fmt.Printf("iterating over %s  (%d/%d)\n", mod, idx+1, len(modules))
-		fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
-		PrintKeysWithValueSize(tree)
+		versions := tree.AvailableVersions()
+		for i, version := range versions {
+			_, err := tree.LoadVersion(int64(version))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error loading version %s data: %s\n", version, err)
+			}
+			fmt.Printf("iterating over ver: %d (%d/%d)\n", version, i+1, len(versions))
+			fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
+			PrintKeysWithValueSize(tree)
+		}
+
 		db.Close()
 	}
 
