@@ -761,3 +761,7 @@ func (tree *MutableTree) addOrphans(orphans []*Node) {
 func (tree *MutableTree) GetOrphanSize() (int, int, int) {
 	return tree.ndb.orphanskv()
 }
+
+func (tree *MutableTree) AllKVSize() error {
+	return tree.ndb.traverseAll()
+}

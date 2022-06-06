@@ -741,3 +741,17 @@ func (ndb *nodeDB) String() string {
 	})
 	return "-" + "\n" + str + "-"
 }
+
+func (ndb *nodeDB) traverseAll() error {
+	c := 0
+	ks := 0
+	vs := 0
+	ndb.traversePrefix([]byte{}, func(key, value []byte) {
+		c++
+		ks += len(key)
+		vs += len(value)
+	})
+
+	fmt.Printf("%d keys, %d ks, %d vs\n", c, ks, vs)
+	return nil
+}
