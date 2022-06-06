@@ -149,7 +149,7 @@ func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, dbm.DB
 		return nil, nil, err
 	}
 
-	//ver, err := tree.LoadVersion(int64(version))
+	ver, err := tree.LoadVersion(int64(version))
 	// if err != nil {
 	// 	db.Close()
 	// 	return nil, nil, err
@@ -157,7 +157,7 @@ func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, dbm.DB
 
 	//s, k, v := tree.GetOrphanSize()
 
-	//fmt.Printf("Got version: %d\n", ver)
+	fmt.Printf("Got version: %d\n", ver)
 	//fmt.Printf("orphans: %d,totalKSize: %d, totalVSize: %d\n", s, k, v)
 
 	return tree, db, err
