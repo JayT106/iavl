@@ -149,16 +149,16 @@ func ReadTree(dir string, version int, prefix []byte) (*iavl.MutableTree, dbm.DB
 		return nil, nil, err
 	}
 
-	ver, err := tree.LoadVersion(int64(version))
-	if err != nil {
-		db.Close()
-		return nil, nil, err
-	}
+	//ver, err := tree.LoadVersion(int64(version))
+	// if err != nil {
+	// 	db.Close()
+	// 	return nil, nil, err
+	// }
 
-	s, k, v := tree.GetOrphanSize()
+	//s, k, v := tree.GetOrphanSize()
 
-	fmt.Printf("Got version: %d\n", ver)
-	fmt.Printf("orphans: %d,totalKSize: %d, totalVSize: %d\n", s, k, v)
+	//fmt.Printf("Got version: %d\n", ver)
+	//fmt.Printf("orphans: %d,totalKSize: %d, totalVSize: %d\n", s, k, v)
 
 	return tree, db, err
 }
@@ -282,13 +282,13 @@ func PrintStatistics(dbpath string, version int) {
 
 	for _, mod := range modules {
 		prefix := fmt.Sprintf("s/k:%s/", mod)
-		tree, db, err := ReadTree(dbpath, version, []byte(prefix))
+		_, db, err := ReadTree(dbpath, version, []byte(prefix))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading %s data: %s\n", mod, err)
 			continue
 		}
 
-		fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
+		//fmt.Printf("tree size:%d height:%d\n", tree.Size(), tree.Height())
 		//PrintKeysWithValueSize(tree)
 
 		db.Close()
