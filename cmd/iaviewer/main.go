@@ -227,7 +227,10 @@ func PrintVersions(tree *iavl.MutableTree) {
 func PrintBalance(tree *iavl.MutableTree, addr []byte) {
 	key := []byte{0x02}
 	key = append(key, address.MustLengthPrefix(addr)...)
-	denom := "basecro"
+	denom := os.Getenv("denom")
+	if denom == "" {
+		denom = "basecro"
+	}
 	key = append(key, []byte(denom)...)
 	_, value := tree.Get(key)
 	if value == nil {
