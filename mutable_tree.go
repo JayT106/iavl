@@ -535,6 +535,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	defer tree.mtx.Unlock()
 
 	var latestRoot []byte
+	size := 0
 	for version, r := range roots {
 		tree.versions[version] = true
 		if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
@@ -544,7 +545,10 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 		if firstVersion == 0 || version < firstVersion {
 			firstVersion = version
 		}
+		size += len(r)
 	}
+
+	fmt.Printf("versions: %d, totalRootSize: %d\n", len(roots), size)
 
 	if !(targetVersion == 0 || latestVersion == targetVersion) {
 		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
@@ -1235,4 +1239,12 @@ func (tree *MutableTree) addOrphans(orphans []*Node) error {
 		tree.orphans[unsafeToStr(node.hash)] = node.version
 	}
 	return nil
+}
+
+func (tree *MutableTree) GetOrphanSize() (int, int, int) {
+	return tree.ndb.orphanskv()
+}
+
+func (tree *MutableTree) AllKVSize() error {
+	return tree.ndb.traverseAll()
 }
